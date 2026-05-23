@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#87ceeb">
+<title>でんしゃで ぴったりストップ！(スマホ版)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: linear-gradient(180deg, #87ceeb 0%, #c9eaff 60%, #f7f7d6 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    user-select: none;
+    -webkit-user-select: none;
+    color: #234;
+  }
+  h1 {
+    font-size: clamp(20px, 5.5vw, 32px);
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 0 #fff;
+    text-align: center;
+  }
+  .line-menu {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    width: 100%;
+    max-width: 720px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .line-btn {
+    flex: 1 1 auto;
+    min-width: 90px;
+    padding: 12px 8px;
+    border: 3px solid #333;
+    border-radius: 30px;
+    background: #fff;
+    color: #333;
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: bold;
+    box-shadow: 0 3px 0 #333;
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .line-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #333; }
+  .line-btn.active {
+    color: #fff;
+    background: var(--line-color, #9ACD32);
+  }
+
+  .info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 720px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    border: 2px solid #555;
+    font-weight: bold;
+    font-size: clamp(13px, 3.6vw, 16px);
+    gap: 8px;
+  }
+  .info-bar .speed { color: #c30; }
+  .info-bar .mute-btn {
+    border: 2px solid #555;
+    background: #fff;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .info-bar .mute-btn.muted { background: #ddd; color: #999; }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 16 / 7;
+    background: linear-gradient(180deg, #d6f0ff 0%, #ffffff 60%, #efe7c8 100%);
+    border: 4px solid #333;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .mountain {
+    position: absolute;
+    bottom: 34%;
+    width: 0;
+    height: 0;
+    border-left: 60px solid transparent;
+    border-right: 60px solid transparent;
+    border-bottom: 56px solid #5a8a55;
+  }
+  .mountain.m1 { left: 6%; }
+  .mountain.m2 { left: 34%; border-bottom-color: #6ba066; }
+  .mountain.m3 { left: 66%; }
+  .cloud {
+    position: absolute;
+    top: 12%;
+    width: 60px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 26px 4px 0 -4px #fff, -20px 4px 0 -2px #fff;
+    animation: cloud-move 60s linear infinite;
+  }
+  .cloud.c2 { top: 22%; left: 60%; animation-duration: 90s; }
+  @keyframes cloud-move {
+    from { transform: translateX(-200px); }
+    to   { transform: translateX(900px); }
+  }
+  .track {
+    position: absolute;
+    bottom: 22%;
+    left: 0;
+    width: 100%;
+    height: 18px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #7a4a1d 0px, #7a4a1d 18px,
+        transparent 18px, transparent 34px
+      ),
+      linear-gradient(180deg, #888 0%, #555 50%, #888 100%);
+  }
+  .rail {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #222;
+  }
+  .rail.top { bottom: calc(22% + 16px); }
+  .rail.bot { bottom: 22%; }
+  .platform {
+    position: absolute;
+    bottom: 14%;
+    left: 60%;
+    width: 28%;
+    height: 18px;
+    background: linear-gradient(180deg, #d8d2b6 0%, #a89a6e 100%);
+    border: 2px solid #555;
+    border-radius: 4px;
+  }
+  .station-sign {
+    position: absolute;
+    bottom: calc(22% + 6px);
+    left: 70%;
+    transform: translateX(-50%);
+    background: #fff;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: clamp(11px, 3vw, 14px);
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .station-sign::before {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #333;
+  }
+  .stop-line {
+    position: absolute;
+    bottom: 22%;
+    left: 70%;
+    width: 6px;
+    height: 38%;
+    background: repeating-linear-gradient(
+      180deg,
+      #e60012 0px, #e60012 8px,
+      #fff 8px, #fff 16px
+    );
+    border-radius: 2px;
+    z-index: 4;
+  }
+  .stop-line::before {
+    content: "ここで とまる";
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e60012;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .train {
+    position: absolute;
+    bottom: calc(22% + 8px);
+    left: 0;
+    width: 22%;
+    min-width: 110px;
+    aspect-ratio: 160 / 60;
+    z-index: 5;
+    transform: translateX(0);
+  }
+  .train .body {
+    position: absolute;
+    bottom: 14%;
+    left: 0;
+    width: 100%;
+    height: 80%;
+    background: #f3f3f3;
+    border: 3px solid #222;
+    border-radius: 8px 18px 6px 6px / 8px 22px 6px 6px;
+  }
+  .train .stripe {
+    position: absolute;
+    top: 32%;
+    left: 0;
+    width: 100%;
+    height: 14%;
+    background: var(--line-color, #9ACD32);
+  }
+  .train .window {
+    position: absolute;
+    top: 10%;
+    width: 11%;
+    height: 22%;
+    background: #cfefff;
+    border: 1.5px solid #234;
+    border-radius: 3px;
+  }
+  .train .window.w1 { left: 7%; }
+  .train .window.w2 { left: 24%; }
+  .train .window.w3 { left: 41%; }
+  .train .window.w4 { left: 58%; }
+  .train .front-window {
+    position: absolute;
+    top: 10%;
+    right: 5%;
+    width: 16%;
+    height: 28%;
+    background: #cfefff;
+    border: 1.5px solid #234;
+    border-radius: 6px 10px 3px 3px;
+  }
+  .train .light {
+    position: absolute;
+    top: 50%;
+    right: 2%;
+    width: 8%;
+    height: 14%;
+    background: #ffd84d;
+    border: 1.5px solid #234;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ffeb7a;
+  }
+  .train .wheel {
+    position: absolute;
+    bottom: -4%;
+    width: 11%;
+    aspect-ratio: 1;
+    background: #333;
+    border: 2px solid #111;
+    border-radius: 50%;
+  }
+  .train .wheel::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30%;
+    height: 30%;
+    background: #aaa;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .train .wheel.w1 { left: 10%; }
+  .train .wheel.w2 { left: 36%; }
+  .train .wheel.w3 { left: 60%; }
+  .train .wheel.w4 { left: 82%; }
+  .train.running .wheel { animation: spin 0.3s linear infinite; }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 720px;
+    margin-top: 12px;
+  }
+  .ctrl-btn {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: bold;
+    padding: 18px 12px;
+    border: 4px solid #222;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #222;
+    transition: transform 0.08s, box-shadow 0.08s;
+    min-height: 64px;
+  }
+  .ctrl-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #222; }
+  .go-btn  { background: #4caf50; color: #fff; }
+  .brake-btn { background: #e53935; color: #fff; }
+  .brake-btn.pressing { background: #b71c1c; }
+  .reset-btn { background: #ffeb3b; color: #234; grid-column: 1 / -1; padding: 12px; font-size: 18px; min-height: 52px; }
+
+  .result {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 720px;
+    min-height: 44px;
+    font-size: clamp(16px, 4.5vw, 22px);
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 14px;
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+  .result.perfect { background: #fff59d; color: #c62828; transform: scale(1.05); }
+  .result.good    { background: #c8e6c9; color: #1b5e20; }
+  .result.miss    { background: #ffcdd2; color: #b71c1c; }
+  .result.over    { background: #d1c4e9; color: #311b92; }
+
+  .hint {
+    margin-top: 4px;
+    font-size: clamp(11px, 3vw, 13px);
+    color: #345;
+    text-align: center;
+    max-width: 720px;
+  }
+
+  /* スタート前のオーバーレイ（音声再生にユーザー操作が必要なため） */
+  .start-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 40, 80, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+  }
+  .start-overlay h2 {
+    font-size: clamp(22px, 6vw, 32px);
+    margin-bottom: 18px;
+    text-shadow: 2px 2px 0 #234;
+  }
+  .start-overlay p {
+    font-size: clamp(14px, 4vw, 18px);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .start-overlay button {
+    font-size: clamp(20px, 5.5vw, 28px);
+    padding: 18px 36px;
+    border: 4px solid #fff;
+    background: #4caf50;
+    color: #fff;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1b5e20;
+  }
+  .start-overlay.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!--
+  ====== フリーBGM／効果音について ======
+  本ファイルでは Web Audio API で簡易BGMと効果音を「内部生成」しています。
+  外部音源を使いたい場合は、下の MUSIC_URL を差し替えてください。
+  療育用途で安心して使えるフリー素材サイト（クレジット要件は各サイトを必ず確認）：
+
+  ・魔王魂        https://maou.audio/         （日本語 / 報告のみで商用可）
+  ・OtoLogic      https://otologic.jp/        （日本語 / クレジット表記で無料）
+  ・効果音ラボ    https://soundeffect-lab.info/（日本語 / 個人・商用とも無料）
+  ・Pixabay Music https://pixabay.com/music/  （クレジット不要・商用可・登録不要）
+  ・Free Music Archive https://freemusicarchive.org/ （ライセンスは曲ごと）
+  ・Incompetech (Kevin MacLeod) https://incompetech.com/ （CC-BY 4.0）
+
+  おすすめキーワード： "kids" "cute" "happy" "kawaii" "lullaby" "train"
+  例： Pixabay で "happy kids" を検索 → MP3 を DL → music/ に置く →
+       下の MUSIC_URL = "music/your-bgm.mp3" に書き換え。
+-->
+
+<div class="start-overlay" id="startOverlay">
+  <h2>でんしゃで ぴったりストップ！</h2>
+  <p>あかい せんで でんしゃを とめてね<br>がめんを タップして スタート</p>
+  <button id="startBtn">▶ はじめる</button>
+</div>
+
+<h1>でんしゃで ぴったりストップ！</h1>
+
+<div class="line-menu" id="lineMenu">
+  <button class="line-btn active" data-line="yamanote">山手線</button>
+  <button class="line-btn" data-line="tozai">東西線</button>
+  <button class="line-btn" data-line="hanzomon">半蔵門線</button>
+</div>
+
+<div class="info-bar">
+  <div>つぎ：<span id="stationName">中央駅</span></div>
+  <div class="speed">はやさ：<span id="speedView">0</span></div>
+  <button class="mute-btn" id="muteBtn" aria-label="音のオンオフ">🔊</button>
+</div>
+
+<div class="stage" id="stage">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="mountain m1"></div>
+  <div class="mountain m2"></div>
+  <div class="mountain m3"></div>
+  <div class="rail top"></div>
+  <div class="rail bot"></div>
+  <div class="track"></div>
+  <div class="platform"></div>
+  <div class="station-sign" id="stationSign">中央駅</div>
+  <div class="stop-line" id="stopLine"></div>
+  <div class="train" id="train">
+    <div class="body">
+      <div class="stripe"></div>
+      <div class="window w1"></div>
+      <div class="window w2"></div>
+      <div class="window w3"></div>
+      <div class="window w4"></div>
+      <div class="front-window"></div>
+      <div class="light"></div>
+    </div>
+    <div class="wheel w1"></div>
+    <div class="wheel w2"></div>
+    <div class="wheel w3"></div>
+    <div class="wheel w4"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn go-btn"    id="goBtn">▶ しゅっぱつ</button>
+  <button class="ctrl-btn brake-btn" id="brakeBtn">■ ブレーキ</button>
+  <button class="ctrl-btn reset-btn" id="resetBtn">⟲ もういちど</button>
+</div>
+
+<div class="result" id="result">「しゅっぱつ」を おしてね！</div>
+<div class="hint">ブレーキは おしっぱなしで げんそく → ぴったり「ここでとまる」で とめよう！</div>
+
+<!-- 外部BGMを使う場合のオーディオタグ。MUSIC_URL を書き換えれば使われます。
+<audio id="bgmAudio" loop preload="auto" src="music/your-bgm.mp3"></audio>
+-->
+
+<script>
+(() => {
+  // ========== 音まわり ==========
+  // 外部MP3を使うときはここに URL を入れる（空文字なら内部生成BGMを使用）
+  const MUSIC_URL = ""; // 例: "music/maoudamashii_8bit29.mp3"
+
+  class GameAudio {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.muted = false;
+      this.bgmTimer = null;
+      this.bgmStop = false;
+      this.extAudio = null;
+    }
+    ensure() {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return false;
+        this.ctx = new AC();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.6;
+        this.master.connect(this.ctx.destination);
+      }
+      if (this.ctx.state === "suspended") this.ctx.resume();
+      return true;
+    }
+    setMuted(m) {
+      this.muted = m;
+      if (this.master) this.master.gain.value = m ? 0 : 0.6;
+      if (this.extAudio) this.extAudio.muted = m;
+    }
+    tone(freq, dur, when, type="triangle", gain=0.15, slideTo=null) {
+      if (!this.ctx || this.muted) return;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, when);
+      if (slideTo) osc.frequency.linearRampToValueAtTime(slideTo, when + dur);
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(gain, when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0008, when + dur);
+      osc.connect(g); g.connect(this.master);
+      osc.start(when);
+      osc.stop(when + dur + 0.05);
+    }
+    startBGM() {
+      if (MUSIC_URL) {
+        if (!this.extAudio) {
+          this.extAudio = new Audio(MUSIC_URL);
+          this.extAudio.loop = true;
+          this.extAudio.volume = 0.4;
+        }
+        this.extAudio.muted = this.muted;
+        this.extAudio.play().catch(()=>{});
+        return;
+      }
+      if (!this.ensure()) return;
+      if (this.bgmTimer) return;
+      this.bgmStop = false;
+      // ペンタトニックの ほのぼのループ（C メジャー）
+      // C5=523.25 D5=587.33 E5=659.25 G5=783.99 A5=880
+      const M = [523.25, 587.33, 659.25, 783.99, 880];
+      const melody = [
+        M[0],M[2],M[3],M[2], M[4],M[3],M[2],M[1],
+        M[2],M[3],M[4],M[3], M[2],M[1],M[0],M[0]
+      ];
+      const bass = [130.81, 130.81, 174.61, 196.00]; // C3 C3 F3 G3
+      const step = 0.36;
+      const schedule = () => {
+        if (this.bgmStop) return;
+        const start = this.ctx.currentTime + 0.05;
+        for (let i = 0; i < melody.length; i++) {
+          this.tone(melody[i], step * 0.85, start + i * step, "triangle", 0.10);
+        }
+        for (let i = 0; i < bass.length; i++) {
+          this.tone(bass[i], step * 3.8, start + i * step * 4, "sine", 0.08);
+        }
+        this.bgmTimer = setTimeout(schedule, melody.length * step * 1000);
+      };
+      schedule();
+    }
+    stopBGM() {
+      this.bgmStop = true;
+      if (this.bgmTimer) { clearTimeout(this.bgmTimer); this.bgmTimer = null; }
+      if (this.extAudio) { try { this.extAudio.pause(); } catch(e){} }
+    }
+    whistle() {
+      if (!this.ensure()) return;
+      const t = this.ctx.currentTime;
+      this.tone(523, 0.5, t, "sine", 0.18, 1046);
+    }
+    brakeSfx() {
+      if (!this.ensure()) return;
+      const t = this.ctx.currentTime;
+      this.tone(660, 0.35, t, "sawtooth", 0.06, 220);
+    }
+    chime(kind) {
+      if (!this.ensure()) return;
+      const t = this.ctx.currentTime;
+      if (kind === "perfect") {
+        const arp = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        arp.forEach((f, i) => this.tone(f, 0.35, t + i * 0.09, "triangle", 0.20));
+      } else if (kind === "good") {
+        this.tone(659.25, 0.25, t,        "triangle", 0.16);
+        this.tone(783.99, 0.35, t + 0.12, "triangle", 0.18);
+      } else if (kind === "over") {
+        this.tone(440, 0.3, t,        "triangle", 0.14, 330);
+        this.tone(330, 0.3, t + 0.15, "triangle", 0.12);
+      } else { // miss / short
+        this.tone(392, 0.4, t, "sine", 0.12, 261.63);
+      }
+    }
+  }
+
+  const audio = new GameAudio();
+
+  // ========== ゲーム ==========
+  const LINES = {
+    yamanote: { name: "山手線",   color: "#9ACD32", stations: ["東京駅","新宿駅","渋谷駅","品川駅","上野駅"] },
+    tozai:    { name: "東西線",   color: "#5BC0DE", stations: ["大手町駅","日本橋駅","葛西駅","西船橋駅","中野駅"] },
+    hanzomon: { name: "半蔵門線", color: "#8E5EA8", stations: ["渋谷駅","表参道駅","九段下駅","錦糸町駅","押上駅"] }
+  };
+
+  let currentLine = "yamanote";
+  let speed = 0;
+  const ACCEL = 0.035;
+  const BRAKE = 0.055;
+  const MAX_SPEED = 2.4;
+  let running = false;
+  let braking = false;
+  let stopped = false;
+  let trainX = 0;
+  let animId = null;
+
+  const $ = id => document.getElementById(id);
+  const stage = $("stage");
+  const train = $("train");
+  const stopLine = $("stopLine");
+  const goBtn = $("goBtn");
+  const brakeBtn = $("brakeBtn");
+  const resetBtn = $("resetBtn");
+  const result = $("result");
+  const speedView = $("speedView");
+  const stationName = $("stationName");
+  const stationSign = $("stationSign");
+  const lineMenu = $("lineMenu");
+  const muteBtn = $("muteBtn");
+  const startOverlay = $("startOverlay");
+  const startBtn = $("startBtn");
+  const platform = document.querySelector(".platform");
+  const stationSignEl = document.querySelector(".station-sign");
+
+  function applyLineColor() {
+    const c = LINES[currentLine].color;
+    document.documentElement.style.setProperty("--line-color", c);
+    document.querySelectorAll(".line-btn").forEach(b => {
+      b.style.setProperty("--line-color", LINES[b.dataset.line].color);
+      b.classList.toggle("active", b.dataset.line === currentLine);
+    });
+  }
+
+  function pickStation() {
+    const list = LINES[currentLine].stations;
+    const s = list[Math.floor(Math.random() * list.length)];
+    stationName.textContent = s;
+    stationSign.textContent = s;
+  }
+
+  function getStopTargetX() {
+    const stageRect = stage.getBoundingClientRect();
+    const lineRect  = stopLine.getBoundingClientRect();
+    const trainW = train.getBoundingClientRect().width;
+    return lineRect.left - stageRect.left - trainW + 6;
+  }
+
+  function judge() {
+    const target = getStopTargetX();
+    const diff = trainX - target;
+    const abs = Math.abs(diff);
+    result.className = "result";
+    if (diff > 26) {
+      result.textContent = "いきすぎたね もういちど！";
+      result.classList.add("over");
+      audio.chime("over");
+    } else if (abs <= 18) {
+      result.textContent = "★ぴったり！ すごい！★";
+      result.classList.add("perfect");
+      audio.chime("perfect");
+    } else if (abs <= 48) {
+      result.textContent = "じょうず！ いいかんじ！";
+      result.classList.add("good");
+      audio.chime("good");
+    } else {
+      result.textContent = "もうすこし すすんでみよう！";
+      result.classList.add("miss");
+      audio.chime("miss");
+    }
+  }
+
+  function loop() {
+    if (running && !braking) {
+      speed += ACCEL;
+      if (speed > MAX_SPEED) speed = MAX_SPEED;
+    } else if (braking) {
+      speed -= BRAKE;
+      if (speed < 0) speed = 0;
+    }
+    trainX += speed;
+    const maxX = stage.clientWidth - 20;
+    if (trainX > maxX) { trainX = maxX; speed = 0; }
+
+    train.style.transform = `translateX(${trainX}px)`;
+    speedView.textContent = Math.round(speed * 20);
+    train.classList.toggle("running", speed > 0.05);
+
+    if (braking && speed === 0 && !stopped) {
+      stopped = true;
+      running = false;
+      judge();
+    }
+    animId = requestAnimationFrame(loop);
+  }
+
+  function startLoop() {
+    if (animId == null) animId = requestAnimationFrame(loop);
+  }
+
+  function reset() {
+    cancelAnimationFrame(animId);
+    animId = null;
+    speed = 0;
+    trainX = 0;
+    running = false;
+    braking = false;
+    stopped = false;
+    train.style.transform = `translateX(0px)`;
+    train.classList.remove("running");
+    speedView.textContent = "0";
+    result.className = "result";
+    result.textContent = "「しゅっぱつ」を おしてね！";
+    pickStation();
+    const pct = 55 + Math.random() * 25;
+    stopLine.style.left = pct + "%";
+    stationSignEl.style.left = pct + "%";
+    platform.style.left = `calc(${pct}% - 14%)`;
+    startLoop();
+  }
+
+  // 路線切り替え
+  lineMenu.addEventListener("click", e => {
+    const btn = e.target.closest(".line-btn");
+    if (!btn) return;
+    currentLine = btn.dataset.line;
+    applyLineColor();
+    reset();
+  });
+
+  // しゅっぱつ
+  goBtn.addEventListener("click", () => {
+    if (stopped) return;
+    running = true;
+    braking = false;
+    audio.whistle();
+    if (result.textContent.startsWith("「しゅっぱつ」")) {
+      result.textContent = "しゅっぱつ！ ぴったり とめてね！";
+    }
+  });
+
+  // ブレーキ（押している間だけ減速）
+  function pressBrake(e) {
+    if (e) e.preventDefault();
+    if (stopped) return;
+    braking = true;
+    brakeBtn.classList.add("pressing");
+    audio.brakeSfx();
+  }
+  function releaseBrake() {
+    if (stopped) return;
+    braking = false;
+    brakeBtn.classList.remove("pressing");
+  }
+  brakeBtn.addEventListener("touchstart", pressBrake, { passive: false });
+  brakeBtn.addEventListener("touchend",   releaseBrake);
+  brakeBtn.addEventListener("touchcancel",releaseBrake);
+  brakeBtn.addEventListener("mousedown",  pressBrake);
+  brakeBtn.addEventListener("mouseup",    releaseBrake);
+  brakeBtn.addEventListener("mouseleave", releaseBrake);
+
+  // もういちど
+  resetBtn.addEventListener("click", () => {
+    reset();
+    audio.chime("good");
+  });
+
+  // ミュート
+  muteBtn.addEventListener("click", () => {
+    const next = !audio.muted;
+    audio.setMuted(next);
+    muteBtn.classList.toggle("muted", next);
+    muteBtn.textContent = next ? "🔇" : "🔊";
+  });
+
+  // 最初のタップで AudioContext を解禁 → BGM 開始
+  startBtn.addEventListener("click", () => {
+    audio.ensure();
+    audio.startBGM();
+    startOverlay.classList.add("hidden");
+  });
+
+  // 画面回転やリサイズで電車位置を補正
+  window.addEventListener("resize", () => {
+    if (trainX > stage.clientWidth - 20) {
+      trainX = stage.clientWidth - 20;
+      train.style.transform = `translateX(${trainX}px)`;
+    }
+  });
+
+  // iOSのスリープ復帰時にBGMが止まることがあるので可視時に再開
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !audio.muted) {
+      audio.startBGM();
+    }
+  });
+
+  applyLineColor();
+  reset();
+})();
+</script>
+</body>
+</html>
